@@ -304,6 +304,7 @@ class search():
          Party2TR = WebDriverWait(Party2,10).until(EC.presence_of_all_elements_located((By.TAG_NAME, "tr")))
          for i_index, i in enumerate(Party2TR):
             if i_index == 2:
+
                break
             td = WebDriverWait(i,10).until(EC.presence_of_all_elements_located((By.TAG_NAME, "td")))
             for j_index, j in enumerate(td):
@@ -326,6 +327,8 @@ class search():
          driver.quit()
       except:
          pass
+
+
 
 ins = search()
 year=2013
