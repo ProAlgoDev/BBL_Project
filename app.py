@@ -138,7 +138,7 @@ class search():
    def bblThread(self,index):
       try:
          option = webdriver.ChromeOptions()
-         option.add_argument(f'--headness={True}')
+         option.add_argument(f'--headless={True}')
          driver = webdriver.Chrome(options=option)
          driver.get("https://a836-acris.nyc.gov/DS/DocumentSearch/BBL")
          borough = self.tableList[index]["Borough"]
@@ -217,7 +217,7 @@ class search():
                pass
          driver.quit()
       except:
-         raise Exception
+         pass
    def refId(self,id):
       option = webdriver.ChromeOptions()
       option.add_argument(f'--headless={True}')
@@ -275,7 +275,7 @@ class search():
    def detThread(self,index):
       try:
          option = webdriver.ChromeOptions()
-         option.add_argument(f"--headness={True}")
+         option.add_argument(f"--headless={True}")
          driver = webdriver.Chrome(options=option)
          url = self.detList[index]
          driver.get(url)
@@ -304,7 +304,6 @@ class search():
          Party2TR = WebDriverWait(Party2,10).until(EC.presence_of_all_elements_located((By.TAG_NAME, "tr")))
          for i_index, i in enumerate(Party2TR):
             if i_index == 2:
-
                break
             td = WebDriverWait(i,10).until(EC.presence_of_all_elements_located((By.TAG_NAME, "td")))
             for j_index, j in enumerate(td):
