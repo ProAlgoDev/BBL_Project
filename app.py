@@ -244,7 +244,6 @@ class search():
          driver.quit()
       except:
          pass
-
 class detailSearch():
    def __init__(self):
       self.driver = webdriver.Chrome()
@@ -301,15 +300,11 @@ class detailSearch():
       except:
          return data
 class searchBBL():
-    
     def __init__(self):
-        
       search_url = "https://a836-acris.nyc.gov/DS/DocumentSearch/BBL"
       op = uc.ChromeOptions()
    
       op.add_argument("--disable-blink-feature=AutomationControlled")
-   #   op.add_argument(f'--headless={True}')
-
       self.driver = webdriver.Chrome(options=op)
       self.driver.maximize_window()
       self.driver.execute_script(
@@ -366,11 +361,7 @@ class searchBBL():
                 return True
         except:
             pass
-        
-
-
-
-
+      
 ins = search()
 year=2013
 month = 1
