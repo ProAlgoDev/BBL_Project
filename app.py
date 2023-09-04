@@ -46,7 +46,7 @@ class search():
          drop_max_element = WebDriverWait(self.driver, 10).until(
                     EC.presence_of_element_located((By.XPATH, "//select[@name='com_maxrows']")))
          drop_max_list = Select(drop_max_element)
-         drop_max_list.select_by_value("99")
+         # drop_max_list.select_by_value("99")
       except:
           pass
    def ftable(self,element):
@@ -156,7 +156,7 @@ class search():
             for j in nextAtag:
                if 'next' == j.text:
                   j.click()
-                  return True
+                  return False
             return False
          except:
             return False
@@ -170,11 +170,22 @@ class search():
       print(df)
       if os.path.exists("MORTGAGE OR AGREEMENT.csv"):
          old_df = pd.read_csv("MORTGAGE OR AGREEMENT.csv")
-         combind_data = old_df.append(df, ignore_index=True)
+         old_dff = pd.DataFrame(old_df)
+         print(old_dff)
+         combind_data = pd.concat([df, old_dff], ignore_index=True)
          combind_data.to_csv("MORTGAGE OR AGREEMENT.csv",index=False)
       else:
          df.to_csv("MORTGAGE OR AGREEMENT.csv", index=False, quoting=1)
-      my_data = np.array([self.year, self.month])
+      if self.month !=12:
+         save_month = self.month+1
+         save_year = self.year
+      elif self.month ==12:
+         save_month = 1
+         save_year = self.year + 1
+      else:
+         save_month = self.month
+         save_year = self.year
+      my_data = np.array([save_year, save_month])
       np.save("save.npy", my_data)
       
 
@@ -244,12 +255,14 @@ class search():
          driver.quit()
       except:
          pass
+
 class detailSearch():
    def __init__(self):
       self.driver = webdriver.Chrome()
    def detThread(self,url):
       try:
          data ={}
+         
          self.driver.get(url)
          documentId = WebDriverWait(self.driver,10).until(EC.presence_of_element_located((By.XPATH, "/html/body/table[4]/tbody/tr/td/table[2]/tbody/tr/td/table[1]/tbody/tr[1]/td[2]"))).text
          data["Document ID"] = documentId
@@ -257,6 +270,7 @@ class detailSearch():
          party1TR = WebDriverWait(party1, 10).until(EC.presence_of_all_elements_located((By.TAG_NAME, "tr")))
          for i_index, i in enumerate(party1TR):
             if i_index == 2:
+               
                break
             td = i.find_elements(By.TAG_NAME, "td")
             for j_index, j in enumerate(td):
@@ -300,11 +314,15 @@ class detailSearch():
       except:
          return data
 class searchBBL():
+    
     def __init__(self):
+        
       search_url = "https://a836-acris.nyc.gov/DS/DocumentSearch/BBL"
       op = uc.ChromeOptions()
    
       op.add_argument("--disable-blink-feature=AutomationControlled")
+   #   op.add_argument(f'--headless={True}')
+
       self.driver = webdriver.Chrome(options=op)
       self.driver.maximize_window()
       self.driver.execute_script(
@@ -361,7 +379,11 @@ class searchBBL():
                 return True
         except:
             pass
-      
+        
+
+
+
+
 ins = search()
 year=2013
 month = 1
