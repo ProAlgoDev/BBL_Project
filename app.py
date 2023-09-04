@@ -24,8 +24,8 @@ class search():
       
    def invoke(self,year,month):
       try:
-         # self.detailChrome = detailSearch()
          self.tableList = []
+         self.bblList = []
          self.year = year
          self.month = month
          self.dayt = calendar.monthrange(self.year, self.month)[1]
@@ -87,14 +87,6 @@ class search():
                detUrl = f"https://a836-acris.nyc.gov/DS/DocumentSearch/DocumentDetail?doc_id={desired_value}"
                self.detList.append(detUrl)
          i_index=0
-         # for i in range(1, len(tr), 10):
-         #    threads = []
-         #    for g in range(i, min(i+10, len(tr))):
-         #       thread = Thread(target=self.ftable, args=(tr[g],))
-         #       threads.append(thread)
-         #       thread.start()
-         #    for thread in threads:
-         #       thread.join()
          for i in tr:
             if i_index == 0:
                i_index +=1
@@ -118,37 +110,10 @@ class search():
                   tmpData["Recorded / Filed"] = m.text
                if m_index == 15:
                   tmpData["Doc Amount"] = m.text
-            # detailData = self.detailChrome.detThread(self.detList[i_index])
-            # tmpData["Document ID"] = detailData["Document ID"]
-            # tmpData["Party1-1 Name"] = detailData["Party1-1 Name"]
-            # tmpData["Party1-1 ADDRESS1"] = detailData["Party1-1 ADDRESS1"]
-            # tmpData["Party1-1 ADDRESS2"] = detailData["Party1-1 ADDRESS2"]
-            # tmpData["Party1-1 CITY"] = detailData["Party1-1 CITY"]
-            # tmpData["Party1-1 STATE"] = detailData["Party1-1 STATE"]
-            # tmpData["Party1-1 ZIP"] = detailData["Party1-1 ZIP"]
-            # tmpData["Party1-2 Name"] = detailData["Party1-2 Name"]
-            # tmpData["Party1-2 ADDRESS1"] = detailData["Party1-2 ADDRESS1"]
-            # tmpData["Party1-2 ADDRESS2"] = detailData["Party1-2 ADDRESS2"]
-            # tmpData["Party1-2 CITY"] = detailData["Party1-2 CITY"]
-            # tmpData["Party1-2 STATE"] = detailData["Party1-2 STATE"]
-            # tmpData["Party1-2 ZIP"] = detailData["Party1-2 ZIP"]
-            # tmpData["Party2-1 Name"] = detailData["Party2-1 Name"]
-            # tmpData["Party2-1 ADDRESS1"] = detailData["Party2-1 ADDRESS1"]
-            # tmpData["Party2-1 ADDRESS2"] = detailData["Party2-1 ADDRESS2"]
-            # tmpData["Party2-1 CITY"] = detailData["Party2-1 CITY"]
-            # tmpData["Party2-1 STATE"] = detailData["Party2-1 STATE"]
-            # tmpData["Party2-1 ZIP"] = detailData["Party2-1 ZIP"]
-            # tmpData["Party2-2 Name"] = detailData["Party2-2 Name"]
-            # tmpData["Party2-2 ADDRESS1"] = detailData["Party2-2 ADDRESS1"]
-            # tmpData["Party2-2 ADDRESS2"] = detailData["Party2-2 ADDRESS2"]
-            # tmpData["Party2-2 CITY"] = detailData["Party2-2 CITY"]
-            # tmpData["Party2-2 STATE"] = detailData["Party2-2 STATE"]
-            # tmpData["Party2-2 ZIP"] = detailData["Party2-2 ZIP"]
-            # tmpData["PROPERTY TYPE"] = detailData["PROPERTY TYPE"]
-            # tmpData["PROPERTY ADDRESS"] = detailData["PROPERTY ADDRESS"]
             i_index+=1
             self.tmpDataList.append(tmpData)
          self.detSearch()
+         self.bblSearch()
          self.tableList += self.tmpDataList
          try:
             checkNextTd = WebDriverWait(self.driver,10).until(EC.presence_of_element_located((By.XPATH, "/html/body/form[1]/table/tbody/tr[1]/td")))
@@ -163,6 +128,29 @@ class search():
       except:
          print("FALSE")
          return False
+   def bblSearch(self):
+      num_iterations = len(self.tableList)
+      max_threads = 4
+      for i in range(0, num_iterations, max_threads):
+         threads = []
+         for j in range(i, min(i+5, num_iterations)):
+            thread = Thread(target=self.bblThread, args=(j,))
+            threads.append(thread)
+            thread.start()
+         for thread in threads:
+            thread.join()
+   def bblThread(self,index):
+      try:
+         driver = webdriver.Chrome()
+         driver.get("https://a836-acris.nyc.gov/DS/DocumentSearch/BBL")
+         borough = self.tableList[index]["Borough"]
+         block = self.tableList[index]["Block"]
+         lot = self.tableList[index]["LOT"]
+         print(borough, block, lot)
+         driver.quit()
+      except:
+         pass
+
    def fetchData(self):
       while self.loadTable():
          print("processing")
@@ -171,7 +159,6 @@ class search():
       if os.path.exists("MORTGAGE OR AGREEMENT.csv"):
          old_df = pd.read_csv("MORTGAGE OR AGREEMENT.csv")
          old_dff = pd.DataFrame(old_df)
-         print(old_dff)
          combind_data = pd.concat([df, old_dff], ignore_index=True)
          combind_data.to_csv("MORTGAGE OR AGREEMENT.csv",index=False)
       else:
@@ -202,9 +189,7 @@ class search():
             thread.join()
    def detThread(self,index):
       try:
-         print(index)
          driver = webdriver.Chrome()
-
          url = self.detList[index]
          driver.get(url)
          documentId = WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH, "/html/body/table[4]/tbody/tr/td/table[2]/tbody/tr/td/table[1]/tbody/tr[1]/td[2]"))).text
@@ -256,63 +241,7 @@ class search():
       except:
          pass
 
-class detailSearch():
-   def __init__(self):
-      self.driver = webdriver.Chrome()
-   def detThread(self,url):
-      try:
-         data ={}
-         
-         self.driver.get(url)
-         documentId = WebDriverWait(self.driver,10).until(EC.presence_of_element_located((By.XPATH, "/html/body/table[4]/tbody/tr/td/table[2]/tbody/tr/td/table[1]/tbody/tr[1]/td[2]"))).text
-         data["Document ID"] = documentId
-         party1 = WebDriverWait(self.driver,10).until(EC.presence_of_element_located((By.XPATH, "/html/body/table[4]/tbody/tr/td/table[3]/tbody/tr[1]/td/table/tbody/tr[2]/td/div/table/tbody")))
-         party1TR = WebDriverWait(party1, 10).until(EC.presence_of_all_elements_located((By.TAG_NAME, "tr")))
-         for i_index, i in enumerate(party1TR):
-            if i_index == 2:
-               
-               break
-            td = i.find_elements(By.TAG_NAME, "td")
-            for j_index, j in enumerate(td):
-               if j_index == 0:
-                  data[f"Party1-{i_index+1} Name"] = j.text
-               if j_index == 1:
-                  data[f"Party1-{i_index+1} ADDRESS1"] = j.text
-               if j_index == 2:
-                  data[f"Party1-{i_index+1} ADDRESS2"] = j.text
-               if j_index == 3:
-                  data[f"Party1-{i_index+1} CITY"] = j.text
-               if j_index == 4:
-                  data[f"Party1-{i_index+1} STATE"] = j.text
-               if j_index == 5:
-                  data[f"Party1-{i_index+1} ZIP"] = j.text
-         Party2 = WebDriverWait(self.driver,10).until(EC.presence_of_element_located((By.XPATH, "/html/body/table[4]/tbody/tr/td/table[3]/tbody/tr[2]/td/table/tbody/tr[2]/td/div/table/tbody")))
-         Party2TR = WebDriverWait(Party2,10).until(EC.presence_of_all_elements_located((By.TAG_NAME, "tr")))
-         for i_index, i in enumerate(Party2TR):
-            if i_index == 2:
-               break
-            td = WebDriverWait(i,10).until(EC.presence_of_all_elements_located((By.TAG_NAME, "td")))
-            for j_index, j in enumerate(td):
-               if j_index == 0:
-                  data[f"Party2-{i_index+1} Name"] = j.text
-               if j_index == 1:
-                  data[f"Party2-{i_index+1} ADDRESS1"] = j.text
-               if j_index == 2:
-                  data[f"Party2-{i_index+1} ADDRESS2"] = j.text
-               if j_index == 3:
-                  data[f"Party2-{i_index+1} CITY"] = j.text
-               if j_index == 4:
-                  data[f"Party2-{i_index+1} STATE"] = j.text
-               if j_index == 5:
-                  data[f"Party2-{i_index+1} ZIP"] = j.text
-         
-         type = WebDriverWait(self.driver,10).until(EC.presence_of_element_located((By.XPATH, "/html/body/table[4]/tbody/tr/td/table[4]/tbody/tr/td/table[1]/tbody/tr[2]/td/div/table/tbody/tr[1]/td[5]"))).text
-         address = WebDriverWait(self.driver,10).until(EC.presence_of_element_located((By.XPATH, "/html/body/table[4]/tbody/tr/td/table[4]/tbody/tr/td/table[1]/tbody/tr[2]/td/div/table/tbody/tr[1]/td[9]"))).text
-         data["PROPERTY TYPE"] = type
-         data["PROPERTY ADDRESS"] = address
-         return data
-      except:
-         return data
+
 class searchBBL():
     
     def __init__(self):
