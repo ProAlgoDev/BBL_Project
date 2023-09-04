@@ -3,7 +3,6 @@ from selenium.webdriver.support.ui import Select
 import time
 import os
 import pandas as pd
-import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -13,12 +12,12 @@ import tkinter as tk
 from tkinter import filedialog
 from tkinter import messagebox
 import numpy as np
-from bs4 import BeautifulSoup
 import calendar
-from multiprocessing import Process
 
 class search():
    def __init__(self):
+      options = webdriver.ChromeOptions()
+      # options.add_argument(f"--headness={True}")
       self.driver = webdriver.Chrome()
       self.driver.maximize_window()
       
@@ -50,11 +49,9 @@ class search():
       except:
           pass
    def ftable(self,element):
-      print(element)
       tmpData = {}
       td = WebDriverWait(element, 10).until(EC.presence_of_all_elements_located((By.XPATH, "./*[self::td]")))
       for m_index, m in enumerate(td):
-         print(m_index)
          if m_index == 1:
             tmpData["Borough"] = m.text
          if m_index == 2:
@@ -71,7 +68,6 @@ class search():
             tmpData["Recorded / Filed"] = m.text
          if m_index == 15:
             tmpData["Doc Amount"] = m.text
-            print(tmpData["Doc Amount"])
       self.tmpDataList.append(tmpData)
    def loadTable(self):
       try:
@@ -113,8 +109,8 @@ class search():
             i_index+=1
             self.tmpDataList.append(tmpData)
          self.detSearch()
-         self.bblSearch()
          self.tableList += self.tmpDataList
+         self.bblSearch()
          try:
             checkNextTd = WebDriverWait(self.driver,10).until(EC.presence_of_element_located((By.XPATH, "/html/body/form[1]/table/tbody/tr[1]/td")))
             nextAtag = WebDriverWait(checkNextTd, 10).until(EC.presence_of_all_elements_located((By.TAG_NAME, "a")))
@@ -141,28 +137,119 @@ class search():
             thread.join()
    def bblThread(self,index):
       try:
-         driver = webdriver.Chrome()
+         option = webdriver.ChromeOptions()
+         option.add_argument(f'--headness={True}')
+         driver = webdriver.Chrome(options=option)
          driver.get("https://a836-acris.nyc.gov/DS/DocumentSearch/BBL")
          borough = self.tableList[index]["Borough"]
          block = self.tableList[index]["Block"]
          lot = self.tableList[index]["LOT"]
-         print(borough, block, lot)
+         borough_mapping = {'BROOKLYN': '3', 'MANHATTAN': '1',
+                           'BRONX': '2', 'QUEENS': '4', 'SI': '5'}
+         dropelement = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, "//select[@name='borough']")))
+         droplist = Select(dropelement)
+         droplist.select_by_value(borough_mapping[borough])
+         time.sleep(1)
+         WebDriverWait(driver, 10).until(EC.presence_of_element_located(
+               (By.XPATH, "//input[@name='edt_block']"))).send_keys(block)
+         time.sleep(.7)
+         
+         WebDriverWait(driver, 10).until(EC.presence_of_element_located(
+               (By.XPATH, "//input[@name='edt_lot']"))).send_keys(lot)
+         WebDriverWait(driver, 10).until(EC.presence_of_element_located(
+                (By.XPATH, "//input[@value='Search']"))).click()
+         drop_max_element = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, "//select[@name='com_maxrows']")))
+         drop_max_list = Select(drop_max_element)
+         drop_max_list.select_by_value("99")
+         nextCheck = True
+         while nextCheck:
+            tableBody = WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH, "/html/body/form[1]/table/tbody/tr[2]/td/table/tbody")))
+            detidList = WebDriverWait(driver,10).until(EC.presence_of_all_elements_located((By.XPATH, "//input[@name='DET']")))
+            tableTR = WebDriverWait(tableBody,10).until(EC.presence_of_all_elements_located((By.XPATH, "./*[self::tr]")))
+            i_index = 0
+            for i in tableTR:
+               if i_index==0:
+                  i_index+=1
+                  continue
+               tableTD = WebDriverWait(i, 10).until(EC.presence_of_all_elements_located((By.XPATH, "./*[self::td]")))
+               checkText = tableTD[7].text
+               print(checkText)
+               if checkText == "SATISFACTION OF MORTGAGE" or checkText == "UCC3 TERMINATION":
+                  tmpData = {}
+                  for j_index, j in enumerate(tableTD):
+                     if j_index == 2:
+                        tmpData["CRFN"] = j.text
+                     if j_index == 3:
+                        tmpData["Lot"] = j.text
+                     if j_index == 4:
+                        tmpData["Partial"] = j.text
+                     if j_index == 5:
+                        tmpData["Doc Date"] = j.text
+                     if j_index == 7:
+                        tmpData["Document Type"] = j.text
+                     if j_index == 9:
+                        tmpData["Party1"] = j.text
+                     if j_index == 10:
+                        tmpData["Party2"] = j.text
+                     if j_index == 14:
+                        tmpData["Doc Amount"] = j.text
+                  detid = detidList[i_index].get_attribute("onClick")
+                  print(detid)
+                  match = re.search(r'"([^"]+)"', detid)
+                  if match:
+                     desired_value = match.group(1)
+                     detUrl = f"https://a836-acris.nyc.gov/DS/DocumentSearch/DocumentDetail?doc_id={desired_value}"
+                     print(detUrl)
+                     tmpData["REFERENCES-CRFN"] = self.refId(detUrl)
+                  self.bblList.append(tmpData)
+               i_index+=1
+            try:
+               checkNextTd = WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH, "/html/body/form[1]/table/tbody/tr[1]/td")))
+               nextAtag = WebDriverWait(checkNextTd, 10).until(EC.presence_of_all_elements_located((By.TAG_NAME, "a")))
+               nextCheck = False
+               for j in nextAtag:
+                  if 'next' == j.text:
+                     j.click()
+                     nextCheck = True
+            except:
+               pass
          driver.quit()
       except:
-         pass
-
+         raise Exception
+   def refId(self,id):
+      option = webdriver.ChromeOptions()
+      option.add_argument(f'--headless={True}')
+      driver = webdriver.Chrome(options=option)
+      driver.get(id)
+      try:
+         ref = WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH, "/html/body/table[4]/tbody/tr/td/table[4]/tbody/tr/td/table[2]/tbody/tr[1]/td[1]/table/tbody/tr[2]/td/div/table/tbody/tr[1]/td[1]"))).text
+         print(ref)
+         input("child")
+         driver.quit()
+         return ref
+      except:
+         driver.quit()
+         return ''
    def fetchData(self):
       while self.loadTable():
          print("processing")
       df = pd.DataFrame(self.tableList)
-      print(df)
-      if os.path.exists("MORTGAGE OR AGREEMENT.csv"):
+      dfBbl = pd.DataFrame(self.bblList)
+      if os.path.exists("MORTGAGE OR AGREEMENT.csv") and os.path.exists("SATISFACTION AND TERMINATION.csv"):
          old_df = pd.read_csv("MORTGAGE OR AGREEMENT.csv")
          old_dff = pd.DataFrame(old_df)
          combind_data = pd.concat([df, old_dff], ignore_index=True)
          combind_data.to_csv("MORTGAGE OR AGREEMENT.csv",index=False)
+
+         old_bbl = pd.read_csv("SATISFACTION AND TERMINATION.csv")
+         old_bblf = pd.DataFrame(old_bbl)
+         combind_bbl_data = pd.concat([dfBbl, old_bblf], ignore_index=True)
+         combind_bbl_data.to_csv("SATISFACTION AND TERMINATION.csv",index=False)
       else:
          df.to_csv("MORTGAGE OR AGREEMENT.csv", index=False, quoting=1)
+         dfBbl.to_csv("SATISFACTION AND TERMINATION.csv", index=False, quoting=1)
       if self.month !=12:
          save_month = self.month+1
          save_year = self.year
@@ -174,8 +261,6 @@ class search():
          save_year = self.year
       my_data = np.array([save_year, save_month])
       np.save("save.npy", my_data)
-      
-
    def detSearch(self):
       num_iterations = len(self.detList)
       max_threads = 4
@@ -189,7 +274,9 @@ class search():
             thread.join()
    def detThread(self,index):
       try:
-         driver = webdriver.Chrome()
+         option = webdriver.ChromeOptions()
+         option.add_argument(f"--headness={True}")
+         driver = webdriver.Chrome(options=option)
          url = self.detList[index]
          driver.get(url)
          documentId = WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH, "/html/body/table[4]/tbody/tr/td/table[2]/tbody/tr/td/table[1]/tbody/tr[1]/td[2]"))).text
@@ -217,6 +304,7 @@ class search():
          Party2TR = WebDriverWait(Party2,10).until(EC.presence_of_all_elements_located((By.TAG_NAME, "tr")))
          for i_index, i in enumerate(Party2TR):
             if i_index == 2:
+
                break
             td = WebDriverWait(i,10).until(EC.presence_of_all_elements_located((By.TAG_NAME, "td")))
             for j_index, j in enumerate(td):
@@ -232,7 +320,6 @@ class search():
                   self.tmpDataList[index][f"Party2-{i_index+1} STATE"] = j.text
                if j_index == 5:
                   self.tmpDataList[index][f"Party2-{i_index+1} ZIP"] = j.text
-         
          type = WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH, "/html/body/table[4]/tbody/tr/td/table[4]/tbody/tr/td/table[1]/tbody/tr[2]/td/div/table/tbody/tr[1]/td[5]"))).text
          address = WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH, "/html/body/table[4]/tbody/tr/td/table[4]/tbody/tr/td/table[1]/tbody/tr[2]/td/div/table/tbody/tr[1]/td[9]"))).text
          self.tmpDataList[index]["PROPERTY TYPE"] = type
@@ -240,76 +327,6 @@ class search():
          driver.quit()
       except:
          pass
-
-
-class searchBBL():
-    
-    def __init__(self):
-        
-      search_url = "https://a836-acris.nyc.gov/DS/DocumentSearch/BBL"
-      op = uc.ChromeOptions()
-   
-      op.add_argument("--disable-blink-feature=AutomationControlled")
-   #   op.add_argument(f'--headless={True}')
-
-      self.driver = webdriver.Chrome(options=op)
-      self.driver.maximize_window()
-      self.driver.execute_script(
-         "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-      time.sleep(1)
-
-    def search(self, m_borough, m_block, m_lot, m_bbl):
-        self.proc = True
-        self.borough = m_borough
-        self.block = m_block
-        self.lot = m_lot
-        self.bbl = m_bbl
-        self.acris = ''
-        self.zolaContent= ''
-        self.bisweb = ''
-        self.year = True
-        search_url = "https://a836-acris.nyc.gov/DS/DocumentSearch/BBL"
-        self.driver.get(search_url)
-        borough_mapping = {'BK': '3', 'MN': '1',
-                           'BX': '2', 'QN': '4', 'SI': '5'}
-        try:
-            dropelement = WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, "//select[@name='borough']")))
-            if dropelement:
-                droplist = Select(dropelement)
-                droplist.select_by_value(borough_mapping[self.borough])
-            time.sleep(1)
-            WebDriverWait(self.driver, 10).until(EC.presence_of_element_located(
-                (By.XPATH, "//*[@id='MT']/tbody/tr/td/form/table[1]/tbody/tr/td[2]/b/font/input"))).send_keys(self.block)
-            time.sleep(.7)
-            
-            WebDriverWait(self.driver, 10).until(EC.presence_of_element_located(
-                (By.XPATH, "//*[@id='MT']/tbody/tr/td/form/table[1]/tbody/tr/td[3]/b/font/input"))).send_keys(self.lot)
-            dropelement = WebDriverWait(self.driver,10).until(EC.presence_of_element_located((By.XPATH,"//select[@name='cmb_date']")))
-            Select(dropelement).select_by_value("5Y")
-            WebDriverWait(self.driver, 10).until(EC.presence_of_element_located(
-                (By.XPATH, "//*[@id='MT']/tbody/tr/td/form/table[5]/tbody/tr[1]/td[1]/div/table/tbody/tr/td/input[1]"))).click()
-            try:
-                noData = ''
-                noData = WebDriverWait(self.driver,1).until(EC.presence_of_element_located((By.XPATH, "/html/body/form[1]/table/tbody/tr[2]/td/table/tbody/tr[2]/td/b"))).text
-            except:
-                pass
-            if noData =='':
-                drop_max_element = WebDriverWait(self.driver, 10).until(
-                    EC.presence_of_element_located((By.XPATH, "//select[@name='com_maxrows']")))
-                if dropelement:
-                    drop_max_list = Select(drop_max_element)
-                    drop_max_list.select_by_value("99")
-                    self.year= True
-                return True
-            elif noData !='':
-                self.acris  = noData+"\n"
-                self.year = False
-                return True
-        except:
-            pass
-        
-
 
 
 
