@@ -1,11 +1,15 @@
 from selenium import webdriver
 from selenium.webdriver.support.ui import Select
+import undetected_chromedriver as uc
 import time
 import os
 import pandas as pd
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+from webdriver_manager.chrome import ChromeDriverManager
+
 import re
 from threading import Thread
 import tkinter as tk
@@ -16,9 +20,11 @@ import calendar
 
 class search():
    def __init__(self):
-      options = webdriver.ChromeOptions()
+      d = DesiredCapabilities.CHROME 
+      d["goog:loggingPrefs"] = {"browser": "INFO"}
+      options = uc.ChromeOptions()
       options.add_argument(f"--headness={True}")
-      self.driver = webdriver.Chrome()
+      self.driver = webdriver.Chrome(options=options)
       self.driver.maximize_window()
       
    def invoke(self,year,month):
@@ -129,7 +135,7 @@ class search():
       max_threads = 4
       for i in range(0, num_iterations, max_threads):
          threads = []
-         for j in range(i, min(i+5, num_iterations)):
+         for j in range(i, min(i+max_threads, num_iterations)):
             thread = Thread(target=self.bblThread, args=(j,))
             threads.append(thread)
             thread.start()
@@ -137,9 +143,11 @@ class search():
             thread.join()
    def bblThread(self,index):
       try:
-         option = webdriver.ChromeOptions()
-         option.add_argument(f'--headless={True}')
-         driver = webdriver.Chrome(options=option)
+         d = DesiredCapabilities.CHROME 
+         d["goog:loggingPrefs"] = {"browser": "INFO"}
+         options = uc.ChromeOptions()
+         options.add_argument(f"--headness={True}")
+         driver = webdriver.Chrome(options=options)
          driver.get("https://a836-acris.nyc.gov/DS/DocumentSearch/BBL")
          borough = self.tableList[index]["Borough"]
          block = self.tableList[index]["Block"]
@@ -219,14 +227,14 @@ class search():
       except:
          pass
    def refId(self,id):
-      option = webdriver.ChromeOptions()
-      option.add_argument(f'--headless={True}')
-      driver = webdriver.Chrome(options=option)
+      d = DesiredCapabilities.CHROME 
+      d["goog:loggingPrefs"] = {"browser": "INFO"}
+      options = uc.ChromeOptions()
+      options.add_argument(f"--headness={True}")
+      driver = webdriver.Chrome(options=options)
       driver.get(id)
       try:
          ref = WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH, "/html/body/table[4]/tbody/tr/td/table[4]/tbody/tr/td/table[2]/tbody/tr[1]/td[1]/table/tbody/tr[2]/td/div/table/tbody/tr[1]/td[1]"))).text
-         print(ref)
-         input("child")
          driver.quit()
          return ref
       except:
@@ -237,16 +245,21 @@ class search():
          print(f"{self.year}/{self.month}")
       df = pd.DataFrame(self.tableList)
       dfBbl = pd.DataFrame(self.bblList)
-      if os.path.exists("MORTGAGE OR AGREEMENT.csv") and os.path.exists("SATISFACTION AND TERMINATION.csv"):
-         old_df = pd.read_csv("MORTGAGE OR AGREEMENT.csv")
-         old_dff = pd.DataFrame(old_df)
-         combind_data = pd.concat([df, old_dff], ignore_index=True)
-         combind_data.to_csv("MORTGAGE OR AGREEMENT.csv",index=False)
+      try:
+         if os.path.exists("MORTGAGE OR AGREEMENT.csv") and os.path.exists("SATISFACTION AND TERMINATION.csv"):
+            old_df = pd.read_csv("MORTGAGE OR AGREEMENT.csv")
+            old_dff = pd.DataFrame(old_df)
+            combind_data = pd.concat([df, old_dff], ignore_index=True)
+            combind_data.to_csv("MORTGAGE OR AGREEMENT.csv",index=False)
 
-         old_bbl = pd.read_csv("SATISFACTION AND TERMINATION.csv")
-         old_bblf = pd.DataFrame(old_bbl)
-         combind_bbl_data = pd.concat([dfBbl, old_bblf], ignore_index=True)
-         combind_bbl_data.to_csv("SATISFACTION AND TERMINATION.csv",index=False)
+            old_bbl = pd.read_csv("SATISFACTION AND TERMINATION.csv")
+            old_bblf = pd.DataFrame(old_bbl)
+            combind_bbl_data = pd.concat([dfBbl, old_bblf], ignore_index=True)
+            combind_bbl_data.to_csv("SATISFACTION AND TERMINATION.csv",index=False)
+      except:
+         os.remove("SATISFACTION AND TERMINATION.csv")
+         os.remove("MORTGAGE OR AGREEMENT.csv")
+         os.remove("save.npy")
       else:
          df.to_csv("MORTGAGE OR AGREEMENT.csv", index=False, quoting=1)
          dfBbl.to_csv("SATISFACTION AND TERMINATION.csv", index=False, quoting=1)
@@ -266,7 +279,7 @@ class search():
       max_threads = 4
       for i in range(0, num_iterations, max_threads):
          threads = []
-         for j in range(i, min(i+5, num_iterations)):
+         for j in range(i, min(i+max_threads, num_iterations)):
             thread = Thread(target=self.detThread, args=(j,))
             threads.append(thread)
             thread.start()
@@ -274,9 +287,11 @@ class search():
             thread.join()
    def detThread(self,index):
       try:
-         option = webdriver.ChromeOptions()
-         option.add_argument(f"--headless={True}")
-         driver = webdriver.Chrome(options=option)
+         d = DesiredCapabilities.CHROME 
+         d["goog:loggingPrefs"] = {"browser": "INFO"}
+         options = uc.ChromeOptions()
+         options.add_argument(f"--headness={True}")
+         driver = webdriver.Chrome(options=options)
          url = self.detList[index]
          driver.get(url)
          documentId = WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH, "/html/body/table[4]/tbody/tr/td/table[2]/tbody/tr/td/table[1]/tbody/tr[1]/td[2]"))).text
@@ -326,7 +341,6 @@ class search():
          driver.quit()
       except:
          pass
-
 ins = search()
 year=2013
 month = 1
