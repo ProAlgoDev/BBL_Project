@@ -143,8 +143,7 @@ class search():
             thread.join()
    def bblThread(self,index):
       try:
-         d = DesiredCapabilities.CHROME 
-         d["goog:loggingPrefs"] = {"browser": "INFO"}
+     
          options = uc.ChromeOptions()
          options.add_argument(f"--headless={True}")
          driver = webdriver.Chrome(options=options)
@@ -288,8 +287,7 @@ class search():
             thread.join()
    def detThread(self,index):
       try:
-         d = DesiredCapabilities.CHROME 
-         d["goog:loggingPrefs"] = {"browser": "INFO"}
+     
          options = uc.ChromeOptions()
          options.add_argument(f"--headless={True}")
          driver = webdriver.Chrome(options=options)
