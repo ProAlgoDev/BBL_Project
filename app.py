@@ -17,7 +17,7 @@ import calendar
 class search():
    def __init__(self):
       options = webdriver.ChromeOptions()
-      # options.add_argument(f"--headness={True}")
+      options.add_argument(f"--headness={True}")
       self.driver = webdriver.Chrome()
       self.driver.maximize_window()
       
@@ -45,7 +45,7 @@ class search():
          drop_max_element = WebDriverWait(self.driver, 10).until(
                     EC.presence_of_element_located((By.XPATH, "//select[@name='com_maxrows']")))
          drop_max_list = Select(drop_max_element)
-         # drop_max_list.select_by_value("99")
+         drop_max_list.select_by_value("99")
       except:
           pass
    def ftable(self,element):
@@ -117,7 +117,7 @@ class search():
             for j in nextAtag:
                if 'next' == j.text:
                   j.click()
-                  return False
+                  return True
             return False
          except:
             return False
@@ -234,7 +234,7 @@ class search():
          return ''
    def fetchData(self):
       while self.loadTable():
-         print("processing")
+         print(f"{self.year}/{self.month}")
       df = pd.DataFrame(self.tableList)
       dfBbl = pd.DataFrame(self.bblList)
       if os.path.exists("MORTGAGE OR AGREEMENT.csv") and os.path.exists("SATISFACTION AND TERMINATION.csv"):
