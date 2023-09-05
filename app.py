@@ -22,8 +22,8 @@ class search():
    def __init__(self):
       d = DesiredCapabilities.CHROME 
       d["goog:loggingPrefs"] = {"browser": "INFO"}
-      options = uc.ChromeOptions()
-      options.add_argument(f"--headness={True}")
+      options = webdriver.ChromeOptions()
+      options.add_argument(f"--headless={True}")
       self.driver = webdriver.Chrome(options=options)
       self.driver.maximize_window()
       
@@ -146,7 +146,7 @@ class search():
          d = DesiredCapabilities.CHROME 
          d["goog:loggingPrefs"] = {"browser": "INFO"}
          options = uc.ChromeOptions()
-         options.add_argument(f"--headness={True}")
+         options.add_argument(f"--headless={True}")
          driver = webdriver.Chrome(options=options)
          driver.get("https://a836-acris.nyc.gov/DS/DocumentSearch/BBL")
          borough = self.tableList[index]["Borough"]
@@ -230,7 +230,7 @@ class search():
       d = DesiredCapabilities.CHROME 
       d["goog:loggingPrefs"] = {"browser": "INFO"}
       options = uc.ChromeOptions()
-      options.add_argument(f"--headness={True}")
+      options.add_argument(f"--headless={True}")
       driver = webdriver.Chrome(options=options)
       driver.get(id)
       try:
@@ -257,9 +257,10 @@ class search():
             combind_bbl_data = pd.concat([dfBbl, old_bblf], ignore_index=True)
             combind_bbl_data.to_csv("SATISFACTION AND TERMINATION.csv",index=False)
       except:
-         os.remove("SATISFACTION AND TERMINATION.csv")
          os.remove("MORTGAGE OR AGREEMENT.csv")
+         os.remove("SATISFACTION AND TERMINATION.csv")
          os.remove("save.npy")
+         pass
       else:
          df.to_csv("MORTGAGE OR AGREEMENT.csv", index=False, quoting=1)
          dfBbl.to_csv("SATISFACTION AND TERMINATION.csv", index=False, quoting=1)
@@ -290,7 +291,7 @@ class search():
          d = DesiredCapabilities.CHROME 
          d["goog:loggingPrefs"] = {"browser": "INFO"}
          options = uc.ChromeOptions()
-         options.add_argument(f"--headness={True}")
+         options.add_argument(f"--headless={True}")
          driver = webdriver.Chrome(options=options)
          url = self.detList[index]
          driver.get(url)
