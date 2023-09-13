@@ -27,12 +27,13 @@ class search():
       self.driver = webdriver.Chrome(options=options)
       self.driver.maximize_window()
       
-   def invoke(self,year,month):
+   def invoke(self,year,month,day):
       try:
          self.tableList = []
          self.bblList = []
          self.year = year
          self.month = month
+         self.dayfrom = day
          self.dayt = calendar.monthrange(self.year, self.month)[1]
          self.driver.get("https://a836-acris.nyc.gov/DS/DocumentSearch/DocumentType")
          documentTypeEl = WebDriverWait(self.driver,10).until(EC.presence_of_element_located((By.XPATH, "//select[@name='combox_doc_doctype']")))
@@ -42,10 +43,10 @@ class search():
          selectDateVar = Select(dateRangeEl)
          selectDateVar.select_by_value("DR")
          WebDriverWait(self.driver,10).until(EC.presence_of_element_located((By.XPATH, "//input[@name='edt_fromm']"))).send_keys(self.month)
-         WebDriverWait(self.driver,10).until(EC.presence_of_element_located((By.XPATH, "//input[@name='edt_fromd']"))).send_keys("1")
+         WebDriverWait(self.driver,10).until(EC.presence_of_element_located((By.XPATH, "//input[@name='edt_fromd']"))).send_keys(self.dayfrom)
          WebDriverWait(self.driver,10).until(EC.presence_of_element_located((By.XPATH, "//input[@name='edt_fromy']"))).send_keys(self.year)
          WebDriverWait(self.driver,10).until(EC.presence_of_element_located((By.XPATH, "//input[@name='edt_tom']"))).send_keys(self.month)
-         WebDriverWait(self.driver,10).until(EC.presence_of_element_located((By.XPATH, "//input[@name='edt_tod']"))).send_keys(self.dayt)
+         WebDriverWait(self.driver,10).until(EC.presence_of_element_located((By.XPATH, "//input[@name='edt_tod']"))).send_keys(self.dayfrom)
          WebDriverWait(self.driver,10).until(EC.presence_of_element_located((By.XPATH, "//input[@name='edt_toy']"))).send_keys(self.year)
          WebDriverWait(self.driver,10).until(EC.presence_of_element_located((By.XPATH, "//input[@value='Search']"))).click()
          drop_max_element = WebDriverWait(self.driver, 10).until(
@@ -241,8 +242,9 @@ class search():
          driver.quit()
          return ''
    def fetchData(self):
+
       while self.loadTable():
-         print(f"{self.year}/{self.month}")
+         print(f"{self.year}/{self.month}/{self.dayfrom}")
       df = pd.DataFrame(self.tableList)
       dfBbl = pd.DataFrame(self.bblList)
       try:
@@ -256,25 +258,29 @@ class search():
             old_bblf = pd.DataFrame(old_bbl)
             combind_bbl_data = pd.concat([dfBbl, old_bblf], ignore_index=True)
             combind_bbl_data.to_csv("SATISFACTION AND TERMINATION.csv",index=False)
+            
+         else:
+            if len(self.tableList) !=0:
+               df.to_csv("MORTGAGE OR AGREEMENT.csv", index=False, quoting=1)
+            if len(self.bblList) !=0:
+               dfBbl.to_csv("SATISFACTION AND TERMINATION.csv", index=False, quoting=1)
+         if self.dayfrom == self.dayt:
+               save_day = 1
+               if self.month ==12:
+                  save_month = 1
+                  save_year = self.year +1
+               elif self.month < 12:
+                  save_month = self.month
+                  save_year = self.year
+         if self.dayfrom < self.dayt:
+            save_month = self.month
+            save_year = self.year
+            save_day = self.dayfrom + 1
+         my_data = np.array([save_year, save_month, save_day])
+         np.save("save.npy", my_data)
       except:
-         os.remove("MORTGAGE OR AGREEMENT.csv")
-         os.remove("SATISFACTION AND TERMINATION.csv")
-         os.remove("save.npy")
          pass
-      else:
-         df.to_csv("MORTGAGE OR AGREEMENT.csv", index=False, quoting=1)
-         dfBbl.to_csv("SATISFACTION AND TERMINATION.csv", index=False, quoting=1)
-      if self.month !=12:
-         save_month = self.month+1
-         save_year = self.year
-      elif self.month ==12:
-         save_month = 1
-         save_year = self.year + 1
-      else:
-         save_month = self.month
-         save_year = self.year
-      my_data = np.array([save_year, save_month])
-      np.save("save.npy", my_data)
+      
    def detSearch(self):
       num_iterations = len(self.detList)
       max_threads = 4
@@ -345,13 +351,18 @@ class search():
 ins = search()
 year=2013
 month = 1
+day = 1
 if os.path.exists("save.npy"):
    my_array = np.load("save.npy")
    year = my_array[0]
    month = my_array[1]
+   day = my_array[2]
+
+dayto = calendar.monthrange(year, month)[1]
 for i in range(year,2024):
    year = i
    for j in range(month,13):
-      month = j
-      ins.invoke(year,month)
-      ins.fetchData()
+      for k in range(day, dayto+1):
+         monthfrom = j
+         ins.invoke(year,monthfrom, k)
+         ins.fetchData()
