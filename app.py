@@ -1,20 +1,14 @@
 from selenium import webdriver
 from selenium.webdriver.support.ui import Select
 import undetected_chromedriver as uc
-import time
 import os
 import pandas as pd
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
-from webdriver_manager.chrome import ChromeDriverManager
-
 import re
 from threading import Thread
-import tkinter as tk
-from tkinter import filedialog
-from tkinter import messagebox
 import numpy as np
 import calendar
 
